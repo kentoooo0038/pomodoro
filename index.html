@@ -31,12 +31,15 @@
     .glass-container {
       background: #ffffff;
       padding: 2.5rem 3rem;
-      border-radius: 32px; /* 上下左右すべての角丸 */
+      border-radius: 32px !important; /* 四隅すべてを確実に丸める */
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
       border: 2px solid #e5e7eb;
       text-align: center;
       min-width: 320px;
-      overflow: hidden; /* 角丸からはみ出る要素をきれいにカット */
+      overflow: hidden; /* 子要素のはみ出しを確実に防止 */
+      isolation: isolate; /* Safariや一部環境での角丸はみ出しバグ対策 */
+      box-sizing: border-box;
+      height: fit-content; /* 中身のサイズにぴったり合わせる */
     }
 
     .time-info {
@@ -121,6 +124,7 @@
       display: flex;
       justify-content: center;
       gap: 1rem;
+      margin-bottom: 0; /* 下部の不要な余白をリセット */
     }
 
     .btn {
@@ -206,7 +210,7 @@
       background-color: #d1d5db;
     }
 
-    /* OBS等のブラウザソースから開かれた場合は自動で設定エリアを非表示にする */
+    /* OBS等のブラウザソースから開かれた場合は自動で設定エリアを完全に非表示にする */
     body.is-obs .settings-area {
       display: none !important;
     }
