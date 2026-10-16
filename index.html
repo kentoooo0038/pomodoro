@@ -166,14 +166,14 @@
       background-color: #e5e7eb;
     }
 
-    /* アラーム音設定エリア */
+    /* アラーム音設定エリア（初期状態は非表示） */
     .settings-area {
       border-top: 1px solid #e5e7eb;
       margin-top: 1rem;
       padding-top: 0.8rem;
       font-size: 0.85rem;
       color: #6b7280;
-      display: flex;
+      display: none !important;
       flex-direction: column;
       align-items: center;
       gap: 0.5rem;
@@ -211,10 +211,13 @@
       background-color: #d1d5db;
     }
 
-    /* 💡 高さ620px以下（例: 800x600）の時は、設定UIを自動で隠す */
-    @media (max-height: 620px) {
+    /* 💡 対話画面などで横幅を広げたとき（幅401px以上）だけ設定UIを表示する */
+    @media (min-width: 401px) {
+      .glass-container {
+        max-width: 420px; /* 設定欄表示用にカード幅を少し拡張 */
+      }
       .settings-area {
-        display: none !important;
+        display: flex !important;
       }
     }
   </style>
