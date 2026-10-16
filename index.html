@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ポモドーロタイマー</title>
+  <title>【配信用】ポモドーロタイマー</title>
   <style>
     :root {
       --color-work: #00BFFF;       /* 25分・スタート：水色 */
@@ -31,11 +31,12 @@
     .glass-container {
       background: #ffffff;
       padding: 2.5rem 3rem;
-      border-radius: 32px;
+      border-radius: 32px; /* 上下左右すべての角丸 */
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
       border: 2px solid #e5e7eb;
       text-align: center;
       min-width: 320px;
+      overflow: hidden; /* 角丸からはみ出る要素をきれいにカット */
     }
 
     .time-info {
@@ -159,6 +160,56 @@
     .btn-reset:hover {
       background-color: #e5e7eb;
     }
+
+    /* アラーム音設定エリア */
+    .settings-area {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 1.5rem;
+      padding-top: 1.2rem;
+      font-size: 0.85rem;
+      color: #6b7280;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .settings-area label {
+      font-weight: 600;
+    }
+
+    .audio-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .file-input {
+      font-size: 0.8rem;
+      max-width: 180px;
+    }
+
+    .btn-test-sound {
+      background-color: #e5e7eb;
+      color: #374151;
+      padding: 0.3rem 0.8rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-test-sound:hover {
+      background-color: #d1d5db;
+    }
+
+    /* OBS等のブラウザソースから開かれた場合は自動で設定エリアを非表示にする */
+    body.is-obs .settings-area {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -170,7 +221,7 @@
 
   <div class="count" id="count">セット: 1 / 4</div>
   <div class="status" id="status">作業時間 (25分)</div>
-  
+
   <div class="circle-container">
     <svg class="circle-svg" viewBox="0 0 280 280">
       <circle class="circle-bg" cx="140" cy="140" r="110"></circle>
@@ -183,6 +234,14 @@
   <div class="buttons">
     <button class="btn start" id="btn-start-pause" onclick="toggleTimer()">スタート</button>
     <button class="btn btn-reset" onclick="resetTimer()">リセット</button>
+  </div>
+
+  <div class="settings-area" id="settings-area">
+    <label for="alarm-file">🔔 アラーム音の設定 (.mp3/.wav)</label>
+    <div class="audio-controls">
+      <input type="file" id="alarm-file" class="file-input" accept="audio/*" onchange="loadCustomSound(event)">
+      <button class="btn-test-sound" onclick="testSound()">試聴</button>
+    </div>
   </div>
 </div>
 
@@ -206,9 +265,8 @@
   let timerId = null;
   let isWorkTime = true;
   let currentSet = 1;
-
-  // バックグラウンド・最小化対策用のタイムスタンプ管理
   let endTimeStamp = null; 
+  let customAudio = null;
 
   const timerDisplay = document.getElementById('timer');
   const statusDisplay = document.getElementById('status');
@@ -219,6 +277,11 @@
   const currentTimeWrapper = document.getElementById('current-time-wrapper');
   const endLabel = document.getElementById('end-label');
   const endTimeDisplay = document.getElementById('end-time');
+
+  // OBS環境判定（OBSのブラウザソースから読まれた場合は is-obs クラスを付与）
+  if (navigator.userAgent.includes('OBSStudio')) {
+    document.body.classList.add('is-obs');
+  }
 
   function createFiveSegmentTicks() {
     const ticksGroup = document.getElementById('ticks-group');
@@ -244,21 +307,37 @@
     }
   }
 
+  function loadCustomSound(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const fileURL = URL.createObjectURL(file);
+      customAudio = new Audio(fileURL);
+    } else {
+      customAudio = null;
+    }
+  }
+
+  function testSound() {
+    playAlarmSound();
+  }
+
   function playAlarmSound() {
+    if (customAudio) {
+      customAudio.currentTime = 0;
+      customAudio.play();
+      return;
+    }
+
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     for (let i = 0; i < 3; i++) {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
       osc.type = 'sine';
       osc.frequency.setValueAtTime(880, audioCtx.currentTime + i * 0.2);
-      
       gain.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.2);
       gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.2 + 0.15);
-      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      
       osc.start(audioCtx.currentTime + i * 0.2);
       osc.stop(audioCtx.currentTime + i * 0.2 + 0.15);
     }
@@ -266,12 +345,10 @@
 
   function updateRealTimes() {
     const now = new Date();
-    
     const nowHours = String(now.getHours()).padStart(2, '0');
     const nowMinutes = String(now.getMinutes()).padStart(2, '0');
     currentTimeDisplay.textContent = `${nowHours}:${nowMinutes}`;
-
-    // 目標終了時刻の計算・表示
+    
     const targetTime = endTimeStamp ? new Date(endTimeStamp) : new Date(now.getTime() + timeLeft * 1000);
     const endHours = String(targetTime.getHours()).padStart(2, '0');
     const endMinutes = String(targetTime.getMinutes()).padStart(2, '0');
@@ -281,74 +358,54 @@
   function updateDisplay() {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    timerDisplay.textContent = 
-      `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     countDisplay.textContent = `セット: ${currentSet} / ${TOTAL_SETS}`;
-
     const progressRatio = (totalTime - timeLeft) / totalTime;
     progressCircle.style.strokeDashoffset = progressRatio * CIRCUMFERENCE;
-
     updateRealTimes();
   }
 
   function setMode(time, statusText, color) {
     totalTime = time;
     timeLeft = time;
-    endTimeStamp = null;
     statusDisplay.textContent = statusText;
     progressCircle.style.stroke = color;
-    updateDisplay(); 
   }
 
   function toggleTimer() {
-    if (timerId === null) {
-      startTimer();
-    } else {
-      pauseTimer();
-    }
+    if (timerId === null) startTimer();
+    else pauseTimer();
   }
 
   function startTimer() {
-    // 動作開始時の「実際の終了時刻」を記録（ミリ秒単位）
     endTimeStamp = Date.now() + timeLeft * 1000;
 
     timerId = setInterval(() => {
-      // 終了時刻と現在時刻の差分から「本当の残り秒数」をリアルタイム計算
       const remaining = Math.round((endTimeStamp - Date.now()) / 1000);
       timeLeft = Math.max(0, remaining);
-
       updateDisplay();
 
       if (timeLeft <= 0) {
-        clearInterval(timerId);
-        timerId = null;
-        endTimeStamp = null;
-        
         playAlarmSound();
 
         if (isWorkTime) {
           isWorkTime = false;
           if (currentSet === TOTAL_SETS) {
             setMode(LONG_BREAK_TIME, '長い休憩 (20分)', COLORS.breakLong);
-            alert('4セット完了！20分間休憩してください。');
           } else {
             setMode(SHORT_BREAK_TIME, '休憩時間 (5分)', COLORS.breakShort);
-            alert('作業完了！5分間休憩してください。');
           }
         } else {
           isWorkTime = true;
-          if (currentSet === TOTAL_SETS) {
-            currentSet = 1;
-          } else {
-            currentSet++;
-          }
+          if (currentSet === TOTAL_SETS) currentSet = 1;
+          else currentSet++;
           setMode(WORK_TIME, '作業時間 (25分)', COLORS.work);
-          alert('休憩終了！次の作業を始めてください。');
         }
-        
-        toggleButtonState(false); 
+
+        endTimeStamp = Date.now() + timeLeft * 1000;
+        updateDisplay();
       }
-    }, 500); // 処理が間引かれてもすぐ追従するよう0.5秒間隔でチェック
+    }, 500);
 
     toggleButtonState(true); 
   }
@@ -373,20 +430,17 @@
       startPauseBtn.textContent = '一時停止';
       startPauseBtn.classList.remove('start');
       startPauseBtn.classList.add('pause');
-      
       currentTimeWrapper.style.display = 'none';
       endLabel.textContent = '終了時間';
     } else {
       startPauseBtn.textContent = 'スタート';
       startPauseBtn.classList.remove('pause');
       startPauseBtn.classList.add('start');
-      
       currentTimeWrapper.style.display = 'inline';
       endLabel.textContent = '終了予定';
     }
   }
 
-  // タブが再びアクティブ（画面に復帰）になった瞬間に最新の時間を即座に反映
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && timerId !== null && endTimeStamp) {
       const remaining = Math.round((endTimeStamp - Date.now()) / 1000);
@@ -400,8 +454,6 @@
   updateDisplay(); 
   setMode(WORK_TIME, '作業時間 (25分)', COLORS.work);
   toggleButtonState(false);
-
 </script>
-
 </body>
 </html>
