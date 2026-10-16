@@ -22,61 +22,63 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      padding: 1.5rem;
+      padding: 1rem;
       box-sizing: border-box;
       background-color: var(--bg-green);
       color: #1f2937;
     }
 
+    /* 💡 800x600等の画面でも上下が切れずに綺麗に収まるカード設定 */
     .glass-container {
       background: #ffffff;
-      padding: 2.5rem 3rem;
-      border-radius: 32px !important; /* 四隅すべてを確実に丸める */
+      padding: 1.5rem 2.2rem;
+      border-radius: 32px !important;
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
       border: 2px solid #e5e7eb;
       text-align: center;
-      min-width: 320px;
-      overflow: hidden; /* 子要素のはみ出しを確実に防止 */
-      isolation: isolate; /* Safariや一部環境での角丸はみ出しバグ対策 */
+      width: 100%;
+      max-width: 340px;
+      overflow: hidden;
+      isolation: isolate;
       box-sizing: border-box;
-      height: fit-content; /* 中身のサイズにぴったり合わせる */
+      height: fit-content;
     }
 
     .time-info {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       color: #4b5563;
       background: #f3f4f6;
-      padding: 0.5rem 1.2rem;
+      padding: 0.4rem 1rem;
       border-radius: 20px;
       display: inline-block;
-      margin-bottom: 0.8rem;
+      margin-bottom: 0.5rem;
     }
 
     .time-info .arrow {
       color: #9ca3af;
-      margin: 0 0.4rem;
+      margin: 0 0.3rem;
     }
 
     .count {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: #6b7280;
-      margin-bottom: 0.3rem;
+      margin-bottom: 0.2rem;
       font-weight: 600;
     }
 
     .status {
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 800;
       color: #374151;
-      margin-bottom: 1.8rem;
+      margin-bottom: 1.2rem;
     }
 
     .circle-container {
       position: relative;
-      width: 280px;
-      height: 280px;
-      margin: 0 auto 2rem auto;
+      width: 240px;
+      height: 240px;
+      margin: 0 auto 1.2rem auto;
     }
 
     .circle-svg {
@@ -113,7 +115,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 3.6rem;
+      font-size: 3.2rem;
       font-weight: 800;
       color: #111827;
       font-variant-numeric: tabular-nums;
@@ -123,13 +125,12 @@
     .buttons {
       display: flex;
       justify-content: center;
-      gap: 1rem;
-      margin-bottom: 0; /* 下部の不要な余白をリセット */
+      gap: 0.8rem;
     }
 
     .btn {
-      font-size: 1.05rem;
-      padding: 0.8rem 2.2rem;
+      font-size: 1rem;
+      padding: 0.7rem 1.8rem;
       border: none;
       border-radius: 14px;
       cursor: pointer;
@@ -168,8 +169,8 @@
     /* アラーム音設定エリア */
     .settings-area {
       border-top: 1px solid #e5e7eb;
-      margin-top: 1.5rem;
-      padding-top: 1.2rem;
+      margin-top: 1rem;
+      padding-top: 0.8rem;
       font-size: 0.85rem;
       color: #6b7280;
       display: flex;
@@ -210,9 +211,11 @@
       background-color: #d1d5db;
     }
 
-    /* OBS等のブラウザソースから開かれた場合は自動で設定エリアを完全に非表示にする */
-    body.is-obs .settings-area {
-      display: none !important;
+    /* 💡 高さ620px以下（例: 800x600）の時は、設定UIを自動で隠す */
+    @media (max-height: 620px) {
+      .settings-area {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -281,11 +284,6 @@
   const currentTimeWrapper = document.getElementById('current-time-wrapper');
   const endLabel = document.getElementById('end-label');
   const endTimeDisplay = document.getElementById('end-time');
-
-  // OBS環境判定（OBSのブラウザソースから読まれた場合は is-obs クラスを付与）
-  if (navigator.userAgent.includes('OBSStudio')) {
-    document.body.classList.add('is-obs');
-  }
 
   function createFiveSegmentTicks() {
     const ticksGroup = document.getElementById('ticks-group');
