@@ -28,7 +28,7 @@
       color: #1f2937;
     }
 
-    /* 💡 800x600等の画面でも上下が切れずに綺麗に収まるカード設定 */
+    /* OBS枠（800x600等）でも上下左右が切れずに収まるカード設定 */
     .glass-container {
       background: #ffffff;
       padding: 1.5rem 2.2rem;
@@ -211,10 +211,10 @@
       background-color: #d1d5db;
     }
 
-    /* 💡 対話画面などで横幅を広げたとき（幅401px以上）だけ設定UIを表示する */
-    @media (min-width: 401px) {
+    /* 💡 ブラウザなどで画面幅が850px以上の時だけ設定UIを表示する（OBSの800x600指定では非表示） */
+    @media (min-width: 850px) {
       .glass-container {
-        max-width: 420px; /* 設定欄表示用にカード幅を少し拡張 */
+        max-width: 420px;
       }
       .settings-area {
         display: flex !important;
